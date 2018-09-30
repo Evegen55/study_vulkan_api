@@ -63,7 +63,7 @@ int main()
 
     vkGetPhysicalDeviceMemoryProperties(info.gpus[0], &info.memory_properties);
     vkGetPhysicalDeviceProperties(info.gpus[0], &info.gpu_props);
-    printf("Device model is: %s\n", info.gpu_props.deviceName);
+    printf("Device model is:\t%s\n", info.gpu_props.deviceName);
 
     /* query device extensions for enabled layers */
     for (auto& layer_props : info.instance_layer_properties) {
@@ -71,7 +71,7 @@ int main()
     }
 
     //03. create and destroy a Vulkan physical device
-    VkDeviceQueueCreateInfo queue_info = {};
+    VkDeviceQueueCreateInfo queue_info_VK_QUEUE_GRAPHICS_BIT = {};
 
     vkGetPhysicalDeviceQueueFamilyProperties(info.gpus[0], &info.queue_family_count, NULL);
     assert(info.queue_family_count >= 1);
@@ -87,42 +87,68 @@ int main()
     //            break;
     //        }
     //    }
-    bool found_VK_QUEUE_GRAPHICS_BIT = findQueueByName(info, queue_info,VK_QUEUE_GRAPHICS_BIT);
+    bool found_VK_QUEUE_GRAPHICS_BIT = findQueueByName(info, queue_info_VK_QUEUE_GRAPHICS_BIT,VK_QUEUE_GRAPHICS_BIT);
     assert(found_VK_QUEUE_GRAPHICS_BIT);
     assert(info.queue_family_count >= 1);
 
-    bool found_VK_QUEUE_COMPUTE_BIT = findQueueByName(info, queue_info,VK_QUEUE_COMPUTE_BIT);
-    assert(found_VK_QUEUE_GRAPHICS_BIT);
+    //only example to find another queue family with given flag
+    VkDeviceQueueCreateInfo queue_info_VK_QUEUE_COMPUTE_BIT = {};
+    bool found_VK_QUEUE_COMPUTE_BIT = findQueueByName(info, queue_info_VK_QUEUE_COMPUTE_BIT,VK_QUEUE_COMPUTE_BIT);
+    assert(found_VK_QUEUE_COMPUTE_BIT);
 
     float queue_priorities[1] = {0.0};
-    queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_info.pNext = NULL;
-    queue_info.queueCount = 1;
-    queue_info.pQueuePriorities = queue_priorities;
+    queue_info_VK_QUEUE_GRAPHICS_BIT.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_info_VK_QUEUE_GRAPHICS_BIT.pNext = NULL;
+    queue_info_VK_QUEUE_GRAPHICS_BIT.queueCount = 1;
+    queue_info_VK_QUEUE_GRAPHICS_BIT.pQueuePriorities = queue_priorities;
 
     VkDeviceCreateInfo device_info = {};
     device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_info.pNext = NULL;
     device_info.queueCreateInfoCount = 1;
-    device_info.pQueueCreateInfos = &queue_info;
+    device_info.pQueueCreateInfos = &queue_info_VK_QUEUE_GRAPHICS_BIT;
     device_info.enabledExtensionCount = 0;
     device_info.ppEnabledExtensionNames = NULL;
     device_info.enabledLayerCount = 0;
     device_info.ppEnabledLayerNames = NULL;
     device_info.pEnabledFeatures = NULL;
 
-    VkDevice device;
-    res = vkCreateDevice(info.gpus[0], &device_info, NULL, &device);
+    res = vkCreateDevice(info.gpus[0], &device_info, NULL, &info.device);
     if (res == VK_SUCCESS) {
-        std::printf("Create Vulkan physical device: SUCCESS!\n");
+        std::printf("Create Vulkan logical device: SUCCESS!\n");
     }
 
     // 04. Create a Command Buffer
-    // TODO
+
+    /* Create a command pool to allocate our command buffer from */
+    VkCommandPoolCreateInfo cmd_pool_info = {};
+    cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    cmd_pool_info.pNext = NULL;
+    cmd_pool_info.queueFamilyIndex = info.graphics_queue_family_index;
+    cmd_pool_info.flags = 0;
+
+    res = vkCreateCommandPool(info.device, &cmd_pool_info, NULL, &info.cmd_pool);
+    assert(res == VK_SUCCESS);
+
+    /* Create the command buffer from the command pool */
+    VkCommandBufferAllocateInfo cmd = {};
+    cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd.pNext = NULL;
+    cmd.commandPool = info.cmd_pool;
+    cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmd.commandBufferCount = 1;
+
+    res = vkAllocateCommandBuffers(info.device, &cmd, &info.cmd);
+    assert(res == VK_SUCCESS);
 
     /* VULKAN_KEY_END */
-    vkDestroyDevice(device, NULL);
+    printf("Destroying device ...\n");
+    VkCommandBuffer cmd_bufs[1] = {info.cmd};
+    vkFreeCommandBuffers(info.device, info.cmd_pool, 1, cmd_bufs);
+    vkDestroyCommandPool(info.device, info.cmd_pool, NULL);
+    vkDeviceWaitIdle(info.device);
+    vkDestroyDevice(info.device, NULL);
     vkDestroyInstance(info.inst, NULL);
-    std::cout << "VULKAN API EXAMPLE ENDS !\n" << std::endl;
+    printf("VULKAN API EXAMPLE ENDS !\n");
     return 0;
 }
