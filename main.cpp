@@ -77,18 +77,22 @@ int main()
     assert(info.queue_family_count >= 1);
     info.queue_props.resize(info.queue_family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(info.gpus[0], &info.queue_family_count, info.queue_props.data());
-
     assert(info.queue_family_count >= 1);
-    bool found_VK_QUEUE_GRAPHICS_BIT = false;
-    for (unsigned int i = 0; i < info.queue_family_count; i++) {
-        if (info.queue_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            queue_info.queueFamilyIndex = i;
-            found_VK_QUEUE_GRAPHICS_BIT = true;
-            break;
-        }
-    }
+
+    //    bool found_VK_QUEUE_GRAPHICS_BIT = false;
+    //    for (unsigned int i = 0; i < info.queue_family_count; i++) {
+    //        if (info.queue_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+    //            queue_info.queueFamilyIndex = i;
+    //            found_VK_QUEUE_GRAPHICS_BIT = true;
+    //            break;
+    //        }
+    //    }
+    bool found_VK_QUEUE_GRAPHICS_BIT = findQueueByName(info, queue_info,VK_QUEUE_GRAPHICS_BIT);
     assert(found_VK_QUEUE_GRAPHICS_BIT);
     assert(info.queue_family_count >= 1);
+
+    bool found_VK_QUEUE_COMPUTE_BIT = findQueueByName(info, queue_info,VK_QUEUE_COMPUTE_BIT);
+    assert(found_VK_QUEUE_GRAPHICS_BIT);
 
     float queue_priorities[1] = {0.0};
     queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -112,6 +116,9 @@ int main()
     if (res == VK_SUCCESS) {
         std::printf("Create Vulkan physical device: SUCCESS!\n");
     }
+
+    // 04. Create a Command Buffer
+    // TODO
 
     /* VULKAN_KEY_END */
     vkDestroyDevice(device, NULL);

@@ -99,3 +99,15 @@ VkResult init_device_extension_properties(struct sample_info &info, layer_proper
 
     return res;
 }
+
+bool findQueueByName(struct sample_info &info,
+                     VkDeviceQueueCreateInfo &queue_info,
+                     enum VkQueueFlagBits queue_name)
+{
+    for (unsigned int i = 0; i < info.queue_family_count; i++) {
+        if (info.queue_props[i].queueFlags & queue_name) {
+            queue_info.queueFamilyIndex = i;
+            return true;
+        }
+    }
+}
