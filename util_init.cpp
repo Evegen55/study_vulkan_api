@@ -75,3 +75,27 @@ VkResult init_global_layer_properties(struct sample_info &info) {
 
     return res;
 }
+
+VkResult init_device_extension_properties(struct sample_info &info, layer_properties &layer_props) {
+    VkExtensionProperties *device_extensions;
+    uint32_t device_extension_count;
+    VkResult res;
+    char *layer_name = NULL;
+
+    layer_name = layer_props.properties.layerName;
+
+    do {
+        res = vkEnumerateDeviceExtensionProperties(info.gpus[0], layer_name, &device_extension_count, NULL);
+        if (res) return res;
+
+        if (device_extension_count == 0) {
+            return VK_SUCCESS;
+        }
+
+        layer_props.device_extensions.resize(device_extension_count);
+        device_extensions = layer_props.device_extensions.data();
+        res = vkEnumerateDeviceExtensionProperties(info.gpus[0], layer_name, &device_extension_count, device_extensions);
+    } while (res == VK_INCOMPLETE);
+
+    return res;
+}
